@@ -29,6 +29,11 @@ export const DashboardHeader = () => {
       }
 
       console.log('User found:', user.id);
+      console.log('User email:', user.email);
+      
+      // Extract name from email (everything before @)
+      const emailName = user.email ? user.email.split('@')[0] : null;
+      const formattedName = emailName ? emailName.charAt(0).toUpperCase() + emailName.slice(1) : null;
       
       // First try to get the existing profile
       const { data: profiles, error: profileError } = await supabase
@@ -41,15 +46,15 @@ export const DashboardHeader = () => {
         throw profileError;
       }
 
-      // If no profile exists, create one
+      // If no profile exists, create one with name from email
       if (!profiles || profiles.length === 0) {
         console.log('No profile found, creating new profile for user:', user.id);
         const { data: newProfile, error: insertError } = await supabase
           .from('profiles')
           .insert([{ 
             id: user.id,
-            first_name: user.user_metadata?.first_name || null,
-            last_name: user.user_metadata?.last_name || null
+            first_name: formattedName,
+            last_name: null
           }])
           .select('first_name, last_name')
           .single();
@@ -61,6 +66,25 @@ export const DashboardHeader = () => {
         
         console.log('New profile created:', newProfile);
         return newProfile;
+      }
+
+      // If profile exists but has no name, update it with email name
+      if (profiles[0] && (!profiles[0].first_name && !profiles[0].last_name)) {
+        console.log('Updating profile with email name');
+        const { data: updatedProfile, error: updateError } = await supabase
+          .from('profiles')
+          .update({ first_name: formattedName })
+          .eq('id', user.id)
+          .select('first_name, last_name')
+          .single();
+          
+        if (updateError) {
+          console.error('Profile update error:', updateError);
+          throw updateError;
+        }
+        
+        console.log('Profile updated:', updatedProfile);
+        return updatedProfile;
       }
 
       console.log('Existing profile found:', profiles[0]);

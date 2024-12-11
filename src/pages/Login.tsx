@@ -25,7 +25,23 @@ export default function Login() {
         password: formData.password,
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes("Email not confirmed")) {
+          toast({
+            title: "Email not verified",
+            description: "Please check your email for a verification link or contact support.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Login failed",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
+        console.error("Login error:", error);
+        return;
+      }
 
       console.log("Login successful:", data);
       toast({

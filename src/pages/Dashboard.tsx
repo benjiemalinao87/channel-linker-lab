@@ -44,22 +44,33 @@ export default function Dashboard() {
     queryKey: ['user-profile'],
     queryFn: async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return null;
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError) {
+          console.log('Auth error:', authError);
+          return null;
+        }
+        
+        if (!user) {
+          console.log('No user found');
+          return null;
+        }
 
+        console.log('Fetching profile for user:', user.id);
         const { data, error } = await supabase
           .from('profiles')
           .select('first_name, last_name')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
         
         if (error) {
           console.log('Profile fetch error:', error);
           return null;
         }
-        return data as Profile;
+
+        console.log('Profile data:', data);
+        return data as Profile | null;
       } catch (error) {
-        console.log('Auth check error:', error);
+        console.log('Unexpected error:', error);
         return null;
       }
     },
@@ -80,11 +91,9 @@ export default function Dashboard() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold">Media Dashboard</h1>
-            {profile && (
-              <p className="text-gray-600 mt-2">
-                Welcome, {profile.first_name || 'User'}!
-              </p>
-            )}
+            <p className="text-gray-600 mt-2">
+              Welcome, {profile?.first_name || 'User'}!
+            </p>
           </div>
           <Button onClick={() => navigate('/admin')}>
             Admin Panel

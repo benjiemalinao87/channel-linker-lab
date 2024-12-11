@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MediaItemManager } from "@/components/admin/MediaItemManager";
+import { ADMIN_PASSWORD } from "@/config/admin";
 
 interface MediaItem {
   id: string;
@@ -85,6 +86,9 @@ export default function Dashboard() {
     setSelectedMedia(item);
   };
 
+  // Check if user is admin by checking local storage
+  const isAdmin = localStorage.getItem('isAdmin') === ADMIN_PASSWORD;
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -95,9 +99,11 @@ export default function Dashboard() {
               Welcome, {profile?.first_name || 'User'}!
             </p>
           </div>
-          <Button onClick={() => navigate('/admin')}>
-            Admin Panel
-          </Button>
+          {isAdmin && (
+            <Button onClick={() => navigate('/admin')}>
+              Admin Panel
+            </Button>
+          )}
         </div>
         
         <CategoryFilter
@@ -118,7 +124,7 @@ export default function Dashboard() {
                   thumbnail={item.thumbnail_url}
                   onClick={() => handleMediaClick(item)}
                 />
-                <MediaItemManager item={item} onUpdate={refetch} />
+                {isAdmin && <MediaItemManager item={item} onUpdate={refetch} />}
               </div>
             ))}
           </div>

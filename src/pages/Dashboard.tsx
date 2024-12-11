@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MediaCard } from "@/components/MediaCard";
 import { CategoryFilter } from "@/components/CategoryFilter";
 import { useQuery } from "@tanstack/react-query";
@@ -7,6 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { MediaItemManager } from "@/components/admin/MediaItemManager";
 import { ADMIN_PASSWORD } from "@/config/admin";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 interface MediaItem {
   id: string;
@@ -18,8 +20,47 @@ interface MediaItem {
 }
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState("all");
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
+  
+  // Check authentication status when component mounts
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('Error checking auth status:', error);
+        toast.error("Authentication error");
+        navigate('/login');
+        return;
+      }
+
+      if (!session) {
+        console.log('No active session found, redirecting to login');
+        toast.error("Please login to access the dashboard");
+        navigate('/login');
+        return;
+      }
+
+      console.log('User is authenticated:', session.user.id);
+    };
+
+    checkAuth();
+
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event);
+      if (event === 'SIGNED_OUT' || !session) {
+        navigate('/login');
+      }
+    });
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
   
   const { data: mediaItems = [], isLoading, refetch } = useQuery({
     queryKey: ['media-items'],

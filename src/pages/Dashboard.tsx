@@ -18,14 +18,13 @@ interface MediaItem {
 }
 
 interface Profile {
-  first_name: string;
-  last_name: string;
+  first_name: string | null;
+  last_name: string | null;
 }
 
 export default function Dashboard() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
   const navigate = useNavigate();
   
   const { data: mediaItems = [], isLoading, refetch } = useQuery({
@@ -41,24 +40,22 @@ export default function Dashboard() {
     }
   });
 
-  useEffect(() => {
-    const fetchProfile = async () => {
+  const { data: profile } = useQuery({
+    queryKey: ['user-profile'],
+    queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('first_name, last_name')
-          .eq('id', user.id)
-          .single();
-        
-        if (data) {
-          setProfile(data);
-        }
-      }
-    };
+      if (!user) throw new Error('No user found');
 
-    fetchProfile();
-  }, []);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw error;
+      return data as Profile;
+    }
+  });
 
   const filteredContent = mediaItems.filter(
     (item) => activeCategory === "all" || item.type === activeCategory
@@ -76,7 +73,7 @@ export default function Dashboard() {
             <h1 className="text-3xl font-bold">Media Dashboard</h1>
             {profile && (
               <p className="text-gray-600 mt-2">
-                Welcome, {profile.first_name}!
+                Welcome, {profile.first_name || 'User'}!
               </p>
             )}
           </div>

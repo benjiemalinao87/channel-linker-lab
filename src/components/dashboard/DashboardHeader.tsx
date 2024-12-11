@@ -17,26 +17,30 @@ export const DashboardHeader = () => {
   const [showAdminInput, setShowAdminInput] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
   
-  const { data: profile } = useQuery({
+  const { data: profile, isLoading } = useQuery({
     queryKey: ['user-profile'],
     queryFn: async () => {
+      console.log('Fetching user profile...');
       const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
       if (authError || !user) {
-        console.log('Auth error or no user:', authError);
+        console.error('Auth error or no user:', authError);
         return null;
       }
 
+      console.log('User found:', user.id);
       const { data, error } = await supabase
         .from('profiles')
         .select('first_name, last_name')
         .eq('id', user.id)
-        .maybeSingle();
+        .single();
       
       if (error) {
-        console.log('Profile fetch error:', error);
+        console.error('Profile fetch error:', error);
         return null;
       }
 
+      console.log('Profile data:', data);
       return data as Profile;
     }
   });
@@ -55,16 +59,16 @@ export const DashboardHeader = () => {
     }
   };
 
-  const displayName = profile ? 
-    `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 
-    'User';
+  const displayName = profile && (profile.first_name || profile.last_name) 
+    ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() 
+    : 'User';
 
   return (
-    <div className="border-b border-gray-100 bg-white py-4 px-6">
-      <div className="max-w-7xl mx-auto flex justify-between items-center">
+    <div className="border-b border-gray-100 bg-white py-3">
+      <div className="max-w-7xl mx-auto flex justify-between items-center px-4 sm:px-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Hello {displayName},
+          <h1 className="text-2xl font-semibold text-gray-900">
+            Hello{isLoading ? '...' : `, ${displayName}`}
           </h1>
         </div>
         <div className="flex gap-3 items-center">

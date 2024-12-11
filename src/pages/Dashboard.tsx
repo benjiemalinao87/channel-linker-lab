@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { MediaCard } from "@/components/MediaCard";
 import { CategoryFilter } from "@/components/CategoryFilter";
@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MediaItemManager } from "@/components/admin/MediaItemManager";
 
 interface MediaItem {
   id: string;
@@ -16,12 +17,18 @@ interface MediaItem {
   thumbnail_url: string;
 }
 
+interface Profile {
+  first_name: string;
+  last_name: string;
+}
+
 export default function Dashboard() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const navigate = useNavigate();
   
-  const { data: mediaItems = [], isLoading } = useQuery({
+  const { data: mediaItems = [], isLoading, refetch } = useQuery({
     queryKey: ['media-items'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -33,6 +40,25 @@ export default function Dashboard() {
       return data as MediaItem[];
     }
   });
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('id', user.id)
+          .single();
+        
+        if (data) {
+          setProfile(data);
+        }
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   const filteredContent = mediaItems.filter(
     (item) => activeCategory === "all" || item.type === activeCategory
@@ -46,7 +72,14 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Media Dashboard</h1>
+          <div>
+            <h1 className="text-3xl font-bold">Media Dashboard</h1>
+            {profile && (
+              <p className="text-gray-600 mt-2">
+                Welcome, {profile.first_name}!
+              </p>
+            )}
+          </div>
           <Button onClick={() => navigate('/admin')}>
             Admin Panel
           </Button>
@@ -62,14 +95,16 @@ export default function Dashboard() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredContent.map((item) => (
-              <MediaCard
-                key={item.id}
-                type={item.type}
-                title={item.title}
-                description={item.description}
-                thumbnail={item.thumbnail_url}
-                onClick={() => handleMediaClick(item)}
-              />
+              <div key={item.id} className="space-y-2">
+                <MediaCard
+                  type={item.type}
+                  title={item.title}
+                  description={item.description}
+                  thumbnail={item.thumbnail_url}
+                  onClick={() => handleMediaClick(item)}
+                />
+                <MediaItemManager item={item} onUpdate={refetch} />
+              </div>
             ))}
           </div>
         )}

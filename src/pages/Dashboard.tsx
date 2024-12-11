@@ -42,25 +42,26 @@ export default function Dashboard() {
     setSelectedMedia(item);
   };
 
-  // Check if user is admin by checking local storage
   const isAdmin = localStorage.getItem('isAdmin') === ADMIN_PASSWORD;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <DashboardHeader />
-        
-        <CategoryFilter
-          activeCategory={activeCategory}
-          onCategoryChange={setActiveCategory}
-        />
+    <div className="min-h-screen bg-[#F1F0FB]">
+      <DashboardHeader />
+      
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <CategoryFilter
+            activeCategory={activeCategory}
+            onCategoryChange={setActiveCategory}
+          />
+        </div>
         
         {isLoading ? (
           <div className="text-center py-10">Loading...</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredContent.map((item) => (
-              <div key={item.id} className="space-y-2">
+              <div key={item.id} className="bg-white rounded-lg shadow-sm p-4">
                 <MediaCard
                   type={item.type}
                   title={item.title}
@@ -68,7 +69,11 @@ export default function Dashboard() {
                   thumbnail={item.thumbnail_url}
                   onClick={() => handleMediaClick(item)}
                 />
-                {isAdmin && <MediaItemManager item={item} onUpdate={refetch} />}
+                {isAdmin && (
+                  <div className="mt-3">
+                    <MediaItemManager item={item} onUpdate={refetch} />
+                  </div>
+                )}
               </div>
             ))}
           </div>

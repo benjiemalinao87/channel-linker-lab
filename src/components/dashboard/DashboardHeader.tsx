@@ -26,7 +26,6 @@ export const DashboardHeader = () => {
         return null;
       }
 
-      console.log('Fetching profile for user:', user.id);
       const { data, error } = await supabase
         .from('profiles')
         .select('first_name, last_name')
@@ -38,12 +37,10 @@ export const DashboardHeader = () => {
         return null;
       }
 
-      console.log('Profile data:', data);
       return data as Profile;
     }
   });
 
-  // Check if user is admin
   const isAdmin = localStorage.getItem('isAdmin') === ADMIN_PASSWORD;
 
   const handleAdminLogin = () => {
@@ -63,36 +60,50 @@ export const DashboardHeader = () => {
     'User';
 
   return (
-    <div className="flex justify-between items-center mb-8">
-      <div>
-        <h1 className="text-3xl font-bold">Media Dashboard</h1>
-        <p className="text-gray-600 mt-2">
-          Welcome, {displayName}!
-        </p>
-      </div>
-      <div className="flex gap-4 items-center">
-        {!isAdmin && (
-          <Button variant="outline" onClick={() => setShowAdminInput(!showAdminInput)}>
-            Admin Login
-          </Button>
-        )}
-        {showAdminInput && (
-          <div className="flex gap-2">
-            <Input
-              type="password"
-              placeholder="Enter admin password"
-              value={adminPassword}
-              onChange={(e) => setAdminPassword(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAdminLogin()}
-            />
-            <Button onClick={handleAdminLogin}>Login</Button>
-          </div>
-        )}
-        {isAdmin && (
-          <Button onClick={() => navigate('/admin')}>
-            Admin Panel
-          </Button>
-        )}
+    <div className="border-b border-gray-100 bg-white py-4 px-6">
+      <div className="max-w-7xl mx-auto flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Hello {displayName},
+          </h1>
+        </div>
+        <div className="flex gap-3 items-center">
+          {!isAdmin && (
+            <Button 
+              variant="outline" 
+              onClick={() => setShowAdminInput(!showAdminInput)}
+              className="text-sm"
+            >
+              Admin Login
+            </Button>
+          )}
+          {showAdminInput && (
+            <div className="flex gap-2">
+              <Input
+                type="password"
+                placeholder="Enter admin password"
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAdminLogin()}
+                className="h-9"
+              />
+              <Button 
+                onClick={handleAdminLogin}
+                className="h-9"
+              >
+                Login
+              </Button>
+            </div>
+          )}
+          {isAdmin && (
+            <Button 
+              onClick={() => navigate('/admin')}
+              className="h-9"
+            >
+              Admin Panel
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

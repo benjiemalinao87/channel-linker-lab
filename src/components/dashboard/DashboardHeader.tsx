@@ -17,7 +17,7 @@ export const DashboardHeader = () => {
   const [showAdminInput, setShowAdminInput] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
   
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading, error } = useQuery({
     queryKey: ['user-profile'],
     queryFn: async () => {
       console.log('Fetching user profile...');
@@ -25,7 +25,7 @@ export const DashboardHeader = () => {
       
       if (authError || !user) {
         console.error('Auth error or no user:', authError);
-        return null;
+        throw new Error('Authentication error');
       }
 
       console.log('User found:', user.id);
@@ -37,12 +37,14 @@ export const DashboardHeader = () => {
       
       if (error) {
         console.error('Profile fetch error:', error);
-        return null;
+        throw error;
       }
 
       console.log('Profile data:', data);
       return data as Profile;
-    }
+    },
+    retry: 1,
+    staleTime: 30000, // Cache for 30 seconds
   });
 
   const isAdmin = localStorage.getItem('isAdmin') === ADMIN_PASSWORD;
@@ -59,16 +61,22 @@ export const DashboardHeader = () => {
     }
   };
 
-  const displayName = profile && (profile.first_name || profile.last_name) 
-    ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() 
-    : 'User';
+  let displayName = 'User';
+  if (isLoading) {
+    displayName = '...';
+  } else if (error) {
+    console.error('Error loading profile:', error);
+    displayName = 'User';
+  } else if (profile && (profile.first_name || profile.last_name)) {
+    displayName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+  }
 
   return (
     <div className="border-b border-gray-100 bg-white py-3">
       <div className="max-w-7xl mx-auto flex justify-between items-center px-4 sm:px-6">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">
-            Hello{isLoading ? '...' : `, ${displayName}`}
+            Hello, {displayName}
           </h1>
         </div>
         <div className="flex gap-3 items-center">

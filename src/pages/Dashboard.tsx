@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MediaItemManager } from "@/components/admin/MediaItemManager";
 import { ADMIN_PASSWORD } from "@/config/admin";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 interface MediaItem {
   id: string;
@@ -26,6 +28,8 @@ interface Profile {
 export default function Dashboard() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
+  const [showAdminInput, setShowAdminInput] = useState(false);
+  const [adminPassword, setAdminPassword] = useState("");
   const navigate = useNavigate();
   
   const { data: mediaItems = [], isLoading, refetch } = useQuery({
@@ -89,6 +93,19 @@ export default function Dashboard() {
   // Check if user is admin by checking local storage
   const isAdmin = localStorage.getItem('isAdmin') === ADMIN_PASSWORD;
 
+  const handleAdminLogin = () => {
+    if (adminPassword === ADMIN_PASSWORD) {
+      localStorage.setItem('isAdmin', ADMIN_PASSWORD);
+      toast.success("Admin access granted");
+      setShowAdminInput(false);
+      setAdminPassword("");
+      // Force a re-render
+      window.location.reload();
+    } else {
+      toast.error("Invalid admin password");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -99,11 +116,30 @@ export default function Dashboard() {
               Welcome, {profile?.first_name || 'User'}!
             </p>
           </div>
-          {isAdmin && (
-            <Button onClick={() => navigate('/admin')}>
-              Admin Panel
-            </Button>
-          )}
+          <div className="flex gap-4 items-center">
+            {!isAdmin && (
+              <Button variant="outline" onClick={() => setShowAdminInput(!showAdminInput)}>
+                Admin Login
+              </Button>
+            )}
+            {showAdminInput && (
+              <div className="flex gap-2">
+                <Input
+                  type="password"
+                  placeholder="Enter admin password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAdminLogin()}
+                />
+                <Button onClick={handleAdminLogin}>Login</Button>
+              </div>
+            )}
+            {isAdmin && (
+              <Button onClick={() => navigate('/admin')}>
+                Admin Panel
+              </Button>
+            )}
+          </div>
         </div>
         
         <CategoryFilter

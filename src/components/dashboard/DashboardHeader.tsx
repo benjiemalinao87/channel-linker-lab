@@ -35,78 +35,58 @@ export const DashboardHeader = () => {
       const emailName = user.email ? user.email.split('@')[0] : null;
       const formattedName = emailName ? emailName.charAt(0).toUpperCase() + emailName.slice(1) : null;
       
-      try {
-        // First try to get the existing profile
-        const { data: profiles, error: profileError } = await supabase
-          .from('profiles')
-          .select('first_name, last_name')
-          .eq('id', user.id);
-        
-        if (profileError) {
-          console.error('Profile fetch error:', profileError);
-          throw profileError;
-        }
-
-        // If no profile exists, create one with name from email
-        if (!profiles || profiles.length === 0) {
-          console.log('No profile found, creating new profile for user:', user.id);
-          try {
-            const { data: newProfile, error: insertError } = await supabase
-              .from('profiles')
-              .insert([{ 
-                id: user.id,
-                first_name: formattedName,
-                last_name: null
-              }])
-              .select('first_name, last_name')
-              .single();
-              
-            if (insertError) {
-              console.error('Profile creation error:', insertError);
-              throw insertError;
-            }
-            
-            console.log('New profile created:', newProfile);
-            return newProfile;
-          } catch (insertError) {
-            console.error('Error creating profile:', insertError);
-            // Return a default profile if creation fails
-            return { first_name: formattedName, last_name: null };
-          }
-        }
-
-        // If profile exists but has no name, update it with email name
-        if (profiles[0] && (!profiles[0].first_name && !profiles[0].last_name)) {
-          console.log('Updating profile with email name');
-          try {
-            const { data: updatedProfile, error: updateError } = await supabase
-              .from('profiles')
-              .update({ first_name: formattedName })
-              .eq('id', user.id)
-              .select('first_name, last_name')
-              .single();
-              
-            if (updateError) {
-              console.error('Profile update error:', updateError);
-              throw updateError;
-            }
-            
-            console.log('Profile updated:', updatedProfile);
-            return updatedProfile;
-          } catch (updateError) {
-            console.error('Error updating profile:', updateError);
-            // Return existing profile even if update fails
-            return profiles[0];
-          }
-        }
-
-        console.log('Existing profile found:', profiles[0]);
-        return profiles[0] as Profile;
-      } catch (error) {
-        console.error('Profile operation error:', error);
-        // Fallback to using email name if all else fails
+      // First try to get the existing profile
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', user.id);
+      
+      if (profileError) {
+        console.error('Profile fetch error:', profileError);
         return { first_name: formattedName, last_name: null };
       }
+
+      // If no profile exists, create one with name from email
+      if (!profiles || profiles.length === 0) {
+        console.log('No profile found, creating new profile for user:', user.id);
+        const { data: newProfile, error: insertError } = await supabase
+          .from('profiles')
+          .insert([{ 
+            id: user.id,
+            first_name: formattedName,
+            last_name: null
+          }])
+          .select('first_name, last_name');
+          
+        if (insertError) {
+          console.error('Profile creation error:', insertError);
+          return { first_name: formattedName, last_name: null };
+        }
+        
+        console.log('New profile created:', newProfile);
+        return newProfile[0];
+      }
+
+      // If profile exists but has no name, update it with email name
+      if (!profiles[0].first_name && !profiles[0].last_name) {
+        console.log('Updating profile with email name');
+        const { data: updatedProfile, error: updateError } = await supabase
+          .from('profiles')
+          .update({ first_name: formattedName })
+          .eq('id', user.id)
+          .select('first_name, last_name');
+          
+        if (updateError) {
+          console.error('Profile update error:', updateError);
+          return profiles[0];
+        }
+        
+        console.log('Profile updated:', updatedProfile);
+        return updatedProfile[0];
+      }
+
+      console.log('Existing profile found:', profiles[0]);
+      return profiles[0] as Profile;
     },
     retry: 1,
     staleTime: 30000, // Cache for 30 seconds

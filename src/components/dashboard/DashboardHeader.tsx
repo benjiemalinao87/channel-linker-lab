@@ -29,40 +29,42 @@ export const DashboardHeader = () => {
       }
 
       console.log('User found:', user.id);
-      const { data, error: profileError } = await supabase
+      
+      // First try to get the existing profile
+      const { data: profiles, error: profileError } = await supabase
         .from('profiles')
         .select('first_name, last_name')
-        .eq('id', user.id)
-        .single();
+        .eq('id', user.id);
       
       if (profileError) {
-        console.log('Profile fetch error:', profileError.message);
-        
-        // If profile doesn't exist, create an empty one
-        if (profileError.message.includes('contains 0 rows')) {
-          console.log('Creating new profile for user:', user.id);
-          const { data: newProfile, error: insertError } = await supabase
-            .from('profiles')
-            .insert([{ 
-              id: user.id,
-              first_name: user.user_metadata?.first_name || null,
-              last_name: user.user_metadata?.last_name || null
-            }])
-            .select('first_name, last_name')
-            .single();
-            
-          if (insertError) {
-            console.error('Profile creation error:', insertError);
-            throw insertError;
-          }
-          console.log('New profile created:', newProfile);
-          return newProfile;
-        }
+        console.error('Profile fetch error:', profileError);
         throw profileError;
       }
 
-      console.log('Profile data:', data);
-      return data as Profile;
+      // If no profile exists, create one
+      if (!profiles || profiles.length === 0) {
+        console.log('No profile found, creating new profile for user:', user.id);
+        const { data: newProfile, error: insertError } = await supabase
+          .from('profiles')
+          .insert([{ 
+            id: user.id,
+            first_name: user.user_metadata?.first_name || null,
+            last_name: user.user_metadata?.last_name || null
+          }])
+          .select('first_name, last_name')
+          .single();
+          
+        if (insertError) {
+          console.error('Profile creation error:', insertError);
+          throw insertError;
+        }
+        
+        console.log('New profile created:', newProfile);
+        return newProfile;
+      }
+
+      console.log('Existing profile found:', profiles[0]);
+      return profiles[0] as Profile;
     },
     retry: 1,
     staleTime: 30000, // Cache for 30 seconds

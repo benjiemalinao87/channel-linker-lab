@@ -1,15 +1,12 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { MediaCard } from "@/components/MediaCard";
 import { CategoryFilter } from "@/components/CategoryFilter";
-import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MediaItemManager } from "@/components/admin/MediaItemManager";
 import { ADMIN_PASSWORD } from "@/config/admin";
-import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 
 interface MediaItem {
   id: string;
@@ -20,17 +17,9 @@ interface MediaItem {
   thumbnail_url: string;
 }
 
-interface Profile {
-  first_name: string | null;
-  last_name: string | null;
-}
-
 export default function Dashboard() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
-  const [showAdminInput, setShowAdminInput] = useState(false);
-  const [adminPassword, setAdminPassword] = useState("");
-  const navigate = useNavigate();
   
   const { data: mediaItems = [], isLoading, refetch } = useQuery({
     queryKey: ['media-items'],
@@ -45,43 +34,6 @@ export default function Dashboard() {
     }
   });
 
-  const { data: profile } = useQuery({
-    queryKey: ['user-profile'],
-    queryFn: async () => {
-      try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError) {
-          console.log('Auth error:', authError);
-          return null;
-        }
-        
-        if (!user) {
-          console.log('No user found');
-          return null;
-        }
-
-        console.log('Fetching profile for user:', user.id);
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('first_name, last_name')
-          .eq('id', user.id)
-          .maybeSingle();
-        
-        if (error) {
-          console.log('Profile fetch error:', error);
-          return null;
-        }
-
-        console.log('Profile data:', data);
-        return data as Profile | null;
-      } catch (error) {
-        console.log('Unexpected error:', error);
-        return null;
-      }
-    },
-    retry: false
-  });
-
   const filteredContent = mediaItems.filter(
     (item) => activeCategory === "all" || item.type === activeCategory
   );
@@ -93,54 +45,10 @@ export default function Dashboard() {
   // Check if user is admin by checking local storage
   const isAdmin = localStorage.getItem('isAdmin') === ADMIN_PASSWORD;
 
-  const handleAdminLogin = () => {
-    if (adminPassword === ADMIN_PASSWORD) {
-      localStorage.setItem('isAdmin', ADMIN_PASSWORD);
-      toast.success("Admin access granted");
-      setShowAdminInput(false);
-      setAdminPassword("");
-      // Force a re-render
-      window.location.reload();
-    } else {
-      toast.error("Invalid admin password");
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">Media Dashboard</h1>
-            <p className="text-gray-600 mt-2">
-              Welcome, {profile?.first_name || 'User'}!
-            </p>
-          </div>
-          <div className="flex gap-4 items-center">
-            {!isAdmin && (
-              <Button variant="outline" onClick={() => setShowAdminInput(!showAdminInput)}>
-                Admin Login
-              </Button>
-            )}
-            {showAdminInput && (
-              <div className="flex gap-2">
-                <Input
-                  type="password"
-                  placeholder="Enter admin password"
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAdminLogin()}
-                />
-                <Button onClick={handleAdminLogin}>Login</Button>
-              </div>
-            )}
-            {isAdmin && (
-              <Button onClick={() => navigate('/admin')}>
-                Admin Panel
-              </Button>
-            )}
-          </div>
-        </div>
+        <DashboardHeader />
         
         <CategoryFilter
           activeCategory={activeCategory}

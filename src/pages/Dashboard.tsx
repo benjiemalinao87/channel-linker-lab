@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MediaCard } from "@/components/MediaCard";
 import { CategoryFilter } from "@/components/CategoryFilter";
@@ -43,18 +43,27 @@ export default function Dashboard() {
   const { data: profile } = useQuery({
     queryKey: ['user-profile'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return null;
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('first_name, last_name')
-        .eq('id', user.id)
-        .single();
-      
-      if (error) throw error;
-      return data as Profile;
-    }
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.log('Profile fetch error:', error);
+          return null;
+        }
+        return data as Profile;
+      } catch (error) {
+        console.log('Auth check error:', error);
+        return null;
+      }
+    },
+    retry: false
   });
 
   const filteredContent = mediaItems.filter(

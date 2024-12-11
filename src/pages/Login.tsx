@@ -1,20 +1,48 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Login() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login submitted");
-    toast({
-      title: "Login successful!",
-      description: "Welcome back!",
-    });
-    navigate("/dashboard");
+    setLoading(true);
+    console.log("Attempting login for:", formData.email);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (error) throw error;
+
+      console.log("Login successful:", data);
+      toast({
+        title: "Login successful!",
+        description: "Welcome back!",
+      });
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Login error:", error);
+      toast({
+        title: "Login failed",
+        description: error instanceof Error ? error.message : "Please check your credentials and try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -26,6 +54,8 @@ export default function Login() {
             <Input
               type="email"
               placeholder="Email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
             />
           </div>
@@ -33,10 +63,14 @@ export default function Login() {
             <Input
               type="password"
               placeholder="Password"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required
             />
           </div>
-          <Button type="submit" className="w-full">Log in</Button>
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? "Logging in..." : "Log in"}
+          </Button>
         </form>
         <p className="mt-4 text-center text-sm text-gray-600">
           Don't have an account?{" "}
@@ -47,4 +81,4 @@ export default function Login() {
       </div>
     </div>
   );
-};
+}

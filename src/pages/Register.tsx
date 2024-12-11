@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useWebhook } from "@/hooks/useWebhook";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -12,28 +13,53 @@ export default function Register() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    password: "",
     phone: "",
     address: "",
   });
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Submitting registration form:", formData);
-    
-    const webhookSuccess = await sendRegistrationWebhook(formData);
-    
-    if (webhookSuccess) {
-      toast({
-        title: "Registration successful!",
-        description: "You can now log in to your account.",
+    setLoading(true);
+    console.log("Starting registration process:", formData.email);
+
+    try {
+      // Register the user with Supabase
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
       });
-      navigate("/login");
-    } else {
+
+      if (authError) throw authError;
+
+      console.log("Supabase registration successful:", authData);
+      
+      // Send webhook notification
+      const webhookSuccess = await sendRegistrationWebhook(formData);
+      
+      if (webhookSuccess) {
+        toast({
+          title: "Registration successful!",
+          description: "You can now log in to your account.",
+        });
+        navigate("/login");
+      } else {
+        toast({
+          title: "Registration completed",
+          description: "Account created but webhook notification failed.",
+        });
+        navigate("/login");
+      }
+    } catch (error) {
+      console.error("Registration error:", error);
       toast({
         title: "Registration failed",
-        description: "Please try again later.",
+        description: error instanceof Error ? error.message : "Please try again later.",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -61,6 +87,16 @@ export default function Register() {
           </div>
           <div>
             <Input
+              type="password"
+              placeholder="Password"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              required
+              minLength={6}
+            />
+          </div>
+          <div>
+            <Input
               type="tel"
               placeholder="Phone"
               value={formData.phone}
@@ -76,7 +112,9 @@ export default function Register() {
               required
             />
           </div>
-          <Button type="submit" className="w-full">Register</Button>
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? "Creating account..." : "Register"}
+          </Button>
         </form>
         <p className="mt-4 text-center text-sm text-gray-600">
           Already have an account?{" "}
@@ -87,4 +125,4 @@ export default function Register() {
       </div>
     </div>
   );
-};
+}

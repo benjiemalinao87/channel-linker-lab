@@ -36,11 +36,18 @@ export const DashboardHeader = () => {
         .single();
       
       if (profileError) {
+        console.log('Profile fetch error:', profileError.message);
+        
         // If profile doesn't exist, create an empty one
         if (profileError.message.includes('contains 0 rows')) {
+          console.log('Creating new profile for user:', user.id);
           const { data: newProfile, error: insertError } = await supabase
             .from('profiles')
-            .insert({ id: user.id })
+            .insert([{ 
+              id: user.id,
+              first_name: user.user_metadata?.first_name || null,
+              last_name: user.user_metadata?.last_name || null
+            }])
             .select('first_name, last_name')
             .single();
             
@@ -48,9 +55,9 @@ export const DashboardHeader = () => {
             console.error('Profile creation error:', insertError);
             throw insertError;
           }
+          console.log('New profile created:', newProfile);
           return newProfile;
         }
-        console.error('Profile fetch error:', profileError);
         throw profileError;
       }
 

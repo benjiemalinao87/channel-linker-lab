@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { AuthError } from "@supabase/supabase-js";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -20,30 +21,17 @@ export default function Login() {
     console.log("Attempting login for:", formData.email);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       });
 
       if (error) {
-        if (error.message.includes("Email not confirmed")) {
-          toast({
-            title: "Email not verified",
-            description: "Please check your email for a verification link or contact support.",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Login failed",
-            description: error.message,
-            variant: "destructive",
-          });
-        }
-        console.error("Login error:", error);
+        handleAuthError(error);
         return;
       }
 
-      console.log("Login successful:", data);
+      console.log("Login successful");
       toast({
         title: "Login successful!",
         description: "Welcome back!",
@@ -53,11 +41,29 @@ export default function Login() {
       console.error("Login error:", error);
       toast({
         title: "Login failed",
-        description: error instanceof Error ? error.message : "Please check your credentials and try again.",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAuthError = (error: AuthError) => {
+    console.error("Auth error:", error);
+    
+    if (error.message.includes("Email not confirmed")) {
+      toast({
+        title: "Email not verified",
+        description: "Please check your email for a verification link or contact support.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Login failed",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 

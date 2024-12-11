@@ -29,15 +29,29 @@ export const DashboardHeader = () => {
       }
 
       console.log('User found:', user.id);
-      const { data, error } = await supabase
+      const { data, error: profileError } = await supabase
         .from('profiles')
         .select('first_name, last_name')
         .eq('id', user.id)
         .single();
       
-      if (error) {
-        console.error('Profile fetch error:', error);
-        throw error;
+      if (profileError) {
+        // If profile doesn't exist, create an empty one
+        if (profileError.message.includes('contains 0 rows')) {
+          const { data: newProfile, error: insertError } = await supabase
+            .from('profiles')
+            .insert({ id: user.id })
+            .select('first_name, last_name')
+            .single();
+            
+          if (insertError) {
+            console.error('Profile creation error:', insertError);
+            throw insertError;
+          }
+          return newProfile;
+        }
+        console.error('Profile fetch error:', profileError);
+        throw profileError;
       }
 
       console.log('Profile data:', data);

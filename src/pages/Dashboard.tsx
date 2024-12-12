@@ -23,35 +23,18 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState("all");
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Check authentication status when component mounts
+  // Check authentication status immediately when component mounts
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.error('Error checking auth status:', error);
-        toast.error("Authentication error");
-        navigate('/login');
-        return;
-      }
-
-      if (!session) {
-        console.log('No active session found, redirecting to login');
-        toast.error("Please login to access the dashboard");
-        navigate('/login');
-        return;
-      }
-
-      console.log('User is authenticated:', session.user.id);
-    };
-
     checkAuth();
-
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('Auth state changed:', event);
       if (event === 'SIGNED_OUT' || !session) {
+        console.log('No session found, redirecting to login');
+        toast.error("Please login to access the dashboard");
         navigate('/login');
       }
     });
@@ -61,8 +44,32 @@ export default function Dashboard() {
       subscription.unsubscribe();
     };
   }, [navigate]);
+
+  // Separate auth check function
+  const checkAuth = async () => {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('Error checking auth status:', error);
+        throw error;
+      }
+
+      if (!session) {
+        console.log('No active session found, redirecting to login');
+        throw new Error('No active session');
+      }
+
+      console.log('User is authenticated:', session.user.id);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Authentication error:', error);
+      toast.error("Please login to access the dashboard");
+      navigate('/login');
+    }
+  };
   
-  const { data: mediaItems = [], isLoading, refetch } = useQuery({
+  const { data: mediaItems = [], isLoading: isMediaLoading, refetch } = useQuery({
     queryKey: ['media-items'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -72,7 +79,8 @@ export default function Dashboard() {
       
       if (error) throw error;
       return data as MediaItem[];
-    }
+    },
+    enabled: !isLoading, // Only fetch media items after auth check is complete
   });
 
   const filteredContent = mediaItems.filter(
@@ -84,6 +92,15 @@ export default function Dashboard() {
   };
 
   const isAdmin = localStorage.getItem('isAdmin') === ADMIN_PASSWORD;
+
+  // Show loading state while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F1F0FB]">
+        <div className="text-center">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F1F0FB]">
@@ -97,7 +114,7 @@ export default function Dashboard() {
           />
         </div>
         
-        {isLoading ? (
+        {isMediaLoading ? (
           <div className="text-center py-10">Loading...</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

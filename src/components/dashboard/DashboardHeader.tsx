@@ -56,7 +56,7 @@ export const DashboardHeader = () => {
             first_name: formattedName,
             last_name: null
           }])
-          .select('first_name, last_name');
+          .select();
           
         if (insertError) {
           console.error('Profile creation error:', insertError);
@@ -64,7 +64,7 @@ export const DashboardHeader = () => {
         }
         
         console.log('New profile created:', newProfile);
-        return newProfile[0];
+        return newProfile[0] as Profile;
       }
 
       // If profile exists but has no name, update it with email name
@@ -74,7 +74,7 @@ export const DashboardHeader = () => {
           .from('profiles')
           .update({ first_name: formattedName })
           .eq('id', user.id)
-          .select('first_name, last_name');
+          .select();
           
         if (updateError) {
           console.error('Profile update error:', updateError);
@@ -82,7 +82,7 @@ export const DashboardHeader = () => {
         }
         
         console.log('Profile updated:', updatedProfile);
-        return updatedProfile[0];
+        return (updatedProfile && updatedProfile[0]) || profiles[0];
       }
 
       console.log('Existing profile found:', profiles[0]);

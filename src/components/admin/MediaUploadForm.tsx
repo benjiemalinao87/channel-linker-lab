@@ -12,6 +12,7 @@ export const MediaUploadForm = () => {
     type: "video",
     file: null as File | null,
     thumbnail: null as File | null,
+    url: "", // New field for link type
   });
   const { toast } = useToast();
 
@@ -26,7 +27,9 @@ export const MediaUploadForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.file || !formData.thumbnail) {
+    
+    // Validation
+    if (formData.type !== 'link' && (!formData.file || !formData.thumbnail)) {
       toast({
         title: "Error",
         description: "Please select both a file and thumbnail",
@@ -35,34 +38,51 @@ export const MediaUploadForm = () => {
       return;
     }
 
+    if (formData.type === 'link' && !formData.url) {
+      toast({
+        title: "Error",
+        description: "Please enter a URL",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setUploadLoading(true);
     try {
-      // Upload main file
-      const fileExt = formData.file.name.split('.').pop();
-      const filePath = `${crypto.randomUUID()}.${fileExt}`;
-      const { error: fileError } = await supabase.storage
-        .from('media')
-        .upload(filePath, formData.file);
+      let fileUrl = formData.url;
+      let thumbnailUrl = '';
 
-      if (fileError) throw fileError;
+      if (formData.type !== 'link') {
+        // Upload main file
+        const fileExt = formData.file!.name.split('.').pop();
+        const filePath = `${crypto.randomUUID()}.${fileExt}`;
+        const { error: fileError } = await supabase.storage
+          .from('media')
+          .upload(filePath, formData.file!);
 
-      // Upload thumbnail
-      const thumbExt = formData.thumbnail.name.split('.').pop();
+        if (fileError) throw fileError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('media')
+          .getPublicUrl(filePath);
+        
+        fileUrl = publicUrl;
+      }
+
+      // Upload thumbnail (required for all types)
+      const thumbExt = formData.thumbnail!.name.split('.').pop();
       const thumbPath = `thumbnails/${crypto.randomUUID()}.${thumbExt}`;
       const { error: thumbError } = await supabase.storage
         .from('media')
-        .upload(thumbPath, formData.thumbnail);
+        .upload(thumbPath, formData.thumbnail!);
 
       if (thumbError) throw thumbError;
 
-      // Get public URLs
-      const { data: { publicUrl: fileUrl } } = supabase.storage
-        .from('media')
-        .getPublicUrl(filePath);
-
-      const { data: { publicUrl: thumbnailUrl } } = supabase.storage
+      const { data: { publicUrl: thumbUrl } } = supabase.storage
         .from('media')
         .getPublicUrl(thumbPath);
+      
+      thumbnailUrl = thumbUrl;
 
       // Save to database
       const { error: dbError } = await supabase
@@ -89,6 +109,7 @@ export const MediaUploadForm = () => {
         type: "video",
         file: null,
         thumbnail: null,
+        url: "",
       });
 
     } catch (error) {
@@ -135,14 +156,27 @@ export const MediaUploadForm = () => {
         </select>
       </div>
 
-      <div className="space-y-2">
-        <label className="block text-sm font-medium">File</label>
-        <Input
-          type="file"
-          onChange={(e) => handleFileChange(e, 'file')}
-          accept={formData.type === 'video' ? 'video/*' : formData.type === 'audio' ? 'audio/*' : '*/*'}
-        />
-      </div>
+      {formData.type === 'link' ? (
+        <div className="space-y-2">
+          <label className="block text-sm font-medium">URL</label>
+          <Input
+            type="url"
+            required
+            value={formData.url}
+            onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
+            placeholder="https://"
+          />
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <label className="block text-sm font-medium">File</label>
+          <Input
+            type="file"
+            onChange={(e) => handleFileChange(e, 'file')}
+            accept={formData.type === 'video' ? 'video/*' : formData.type === 'audio' ? 'audio/*' : '*/*'}
+          />
+        </div>
+      )}
 
       <div className="space-y-2">
         <label className="block text-sm font-medium">Thumbnail</label>

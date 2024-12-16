@@ -40,6 +40,21 @@ export default function Dashboard() {
   return (
     <AuthGuard>
       <div className="min-h-screen bg-[#F1F0FB]">
+        <div className="bg-white shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img 
+                src="/lovable-uploads/8ef77a4c-fff9-4c82-8782-5a38587a124b.png" 
+                alt="Channel Automation Logo" 
+                className="h-12 w-auto"
+              />
+              <h1 className="text-2xl font-semibold text-gray-900">
+                Channel Automation - Demo Library
+              </h1>
+            </div>
+          </div>
+        </div>
+        
         <DashboardHeader />
         
         <div className="max-w-7xl mx-auto px-6 py-6">

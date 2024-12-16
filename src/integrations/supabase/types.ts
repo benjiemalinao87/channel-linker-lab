@@ -57,6 +57,54 @@ export type Database = {
         }
         Relationships: []
       }
+      workspaces: {
+        Row: {
+          billing_end_at: string | null
+          billing_start_at: string | null
+          bot_limit: number
+          bot_used: number
+          bot_user_limit: number
+          bot_user_used: number
+          created_at: string | null
+          id: string
+          member_limit: number
+          member_used: number
+          name: string
+          plan: string
+          timezone: string
+        }
+        Insert: {
+          billing_end_at?: string | null
+          billing_start_at?: string | null
+          bot_limit?: number
+          bot_used?: number
+          bot_user_limit?: number
+          bot_user_used?: number
+          created_at?: string | null
+          id: string
+          member_limit?: number
+          member_used?: number
+          name: string
+          plan: string
+          timezone?: string
+        }
+        Update: {
+          billing_end_at?: string | null
+          billing_start_at?: string | null
+          bot_limit?: number
+          bot_used?: number
+          bot_user_limit?: number
+          bot_user_used?: number
+          created_at?: string | null
+          id?: string
+          member_limit?: number
+          member_used?: number
+          name?: string
+          plan?: string
+          timezone?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

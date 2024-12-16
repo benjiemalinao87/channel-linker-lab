@@ -10,7 +10,7 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img 
-              src="/lovable-uploads/8ef77a4c-fff9-4c82-8782-5a38587a124b.png" 
+              src="/lovable-uploads/4f52448f-ccb6-46bf-85cd-ed608d5f9798.png" 
               alt="Channel Automation Logo" 
               className="h-12 w-auto"
             />
